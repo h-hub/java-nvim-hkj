@@ -119,6 +119,14 @@ local function run_maven_command()
 			value = "mvn dependency:purge-local-repository",
 		},
 		{ label = "🔍 mvn dependency:analyze – Analyze dependency usage", value = "mvn dependency:analyze" },
+		{
+			label = "  mvn dependency:copy-dependencies -Dclassifier=sources – Download all soources",
+			value = "mvn dependency:copy-dependencies -Dclassifier=sources",
+		},
+		{
+			label = " mvn dependency:copy-dependencies -Dclassifier=javadoc – Download java docs",
+			value = "mvn dependency:copy-dependencies -Dclassifier=javadoc",
+		},
 	}
 
 	local labels = vim.tbl_map(function(item)

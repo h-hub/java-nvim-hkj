@@ -38,6 +38,8 @@ require("config.keymaps")
 require("config.autocmds")
 
 require("config.maven.mvn-config")
+require("config.tags.tags")
+
 -- Setup lazy, this should always be last
 -- Tell lazy that all plugin specs are found in the plugins directory
 -- Pass it the options we specified above

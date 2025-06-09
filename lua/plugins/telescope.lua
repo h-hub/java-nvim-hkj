@@ -9,8 +9,20 @@ return {
 		},
 		config = function()
 			-- get access to telescopes built in functions
+			local telescope = require("telescope")
 			local builtin = require("telescope.builtin")
 
+			telescope.setup({
+				defaults = {
+					file_ignore_patterns = {
+						"node_modules/",
+						"target/",
+						"build/",
+						".git/",
+						"jar%-sources/", -- escape `-` with `%`
+					},
+				},
+			})
 			-- set a vim motion to <Space> + f + f to search for files by their names
 			vim.keymap.set("n", "<leader>ff", builtin.find_files, { desc = "[F]ind [F]iles" })
 			-- set a vim motion to <Space> + f + g to search for files based on the text inside of them

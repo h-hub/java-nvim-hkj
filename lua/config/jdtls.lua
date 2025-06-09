@@ -296,7 +296,7 @@ local function setup_jdtls()
 	local on_attach = function(_, bufnr)
 		-- Map the Java specific key mappings once the server is attached
 		java_keymaps()
-
+		print("jdtls attachings....")
 		-- Setup the java debug adapter of the JDTLS server
 		require("jdtls.dap").setup_dap()
 

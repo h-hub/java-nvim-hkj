@@ -37,3 +37,14 @@ vim.opt.cursorline = true -- highlight current line
 vim.opt.hlsearch = true -- highlight all matches in search
 vim.opt.ignorecase = true -- ignore case in search
 vim.opt.smartcase = true -- match case if explicitly stated
+
+-- vim.diagnostic.config({
+-- 	virtual_text = {
+-- 		prefix = "●", -- or ">>" or any symbol you like
+-- 		spacing = 2,
+-- 	},
+-- 	signs = true,
+-- 	underline = true,
+-- 	update_in_insert = false,
+-- 	severity_sort = true,
+-- })
