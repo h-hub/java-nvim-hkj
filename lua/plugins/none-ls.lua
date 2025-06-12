@@ -31,21 +31,13 @@ return {
 		local null_ls = require("null-ls")
 
 		local h = require("null-ls.helpers")
-		local methods = require("null-ls.methods")
 
-		local DIAGNOSTICS = methods.internal.DIAGNOSTICS
-
-		local maven_diagnostics = h.make_builtin({
-			name = "maven_compile",
-			meta = {
-				url = "https://maven.apache.org/plugins/maven-compiler-plugin/",
-				description = "Uses mvn compile to detect Java compile errors.",
-			},
-			method = require("null-ls.methods").internal.DIAGNOSTICS_ON_OPEN,
+		local maven_diagnostics = {
+			method = null_ls.methods.DIAGNOSTICS,
 			filetypes = { "java" },
-			generator_opts = {
+			generator = h.generator_factory({
 				command = vim.fn.expand("~/.sdkman/candidates/maven/current/bin/mvn"),
-				args = { "compile" },
+				args = { "compile", "-T", "1C" },
 				cwd = function()
 					return vim.fn.expand("~/codes/java/property-crm")
 				end,
@@ -54,46 +46,83 @@ return {
 					JAVA_HOME = os.getenv("JAVA_HOME"),
 					M2_HOME = os.getenv("M2_HOME"),
 				},
-				format = "raw",
-				from_stderr = true,
+				format = "line",
+				from_stderr = false,
 				to_temp_file = false,
+				timeout = 10000,
+				check_exit_code = function(code)
+					return code == 0 or code == 1
+				end,
 				on_output = function(params)
-					local diagnostics = {}
-					local output = params.output
+					local line = params
 
-					for line in vim.gsplit(output, "\n") do
-						-- if line:find("BUILD FAILURE") then
-						-- 	-- print("found BUil")
-						-- 	print(vim.inspect(diagnostics))
-						-- 	return diagnostics
-						-- end
-						local file, line_num, col, msg = string.match(line, "%[ERROR%]%s+(.-):%[(%d+),(%d+)%]%s+(.+)")
+					local buffer_id = vim.api.nvim_get_current_buf()
+					local filename = vim.api.nvim_buf_get_name(buffer_id)
 
-						if file and line_num and col and msg then
-							-- print("File:", file)
-							-- print("Line:", line_num)
-							-- print("Col:", col)
-							-- print("Msg:", msg)
-
-							table.insert(diagnostics, {
+					-- Parse the line
+					local file, line_num, col, msg = string.match(line, "%[ERROR%]%s+(.-):%[(%d+),(%d+)%]%s+(.+)")
+					if file and line_num and col and msg then
+						-- Only include diagnostics for the current buffer
+						if vim.fn.trim(file) == filename then
+							local diagnostics = {
 								filename = vim.fn.trim(file),
 								row = tonumber(line_num),
 								col = tonumber(col),
 								message = msg,
 								severity = 1, -- 1 = ERROR
 								source = "maven",
-								-- bufnr = params.bufnr,
-							})
+							}
+							return diagnostics
 						end
-						-- rint(line)
-						-- print("loop running")
 					end
-
-					return diagnostics
 				end,
+			}),
+		}
+
+		local checkstyle_diagnostic = {
+			filetypes = { "java" },
+			command = "java",
+			args = {
+				"-jar",
+				checkstyle_jar,
+				"-c",
+				google_checks,
+				"$filename",
 			},
-			factory = h.generator_factory,
-		})
+			format = "line",
+			to_temp_file = false,
+			from_stderr = false,
+			on_output = function(params)
+				local diagnostics = {}
+				for line in vim.gsplit(params.output, "\n") do
+					local severity_text, filename, line_num, col_num, message =
+						string.match(line, "^%[(%u+)%]%s+(.+):(%d+):(%d+):%s+(.+)%s+%[.-%]$")
+					if severity_text and filename and line_num and col_num and message then
+						local severity = 3 -- default info
+						if severity_text == "error" then
+							severity = 1
+						elseif severity_text == "warn" or severity_text == "warning" then
+							severity = 2
+						elseif severity_text == "info" then
+							severity = 3
+						elseif severity_text == "hint" then
+							severity = 4
+						end
+
+						table.insert(diagnostics, {
+							row = tonumber(line_num),
+							col = tonumber(col_num),
+							end_col = tonumber(col_num) + 1,
+							message = message,
+							severity = severity,
+							source = "checkstyle",
+							bufnr = params.bufnr,
+						})
+					end
+				end
+				return diagnostics
+			end,
+		}
 
 		vim.cmd("let g:null_ls_debug = v:true")
 		-- require("null-ls").setup({ debug = true })
@@ -102,68 +131,24 @@ return {
 		null_ls.setup({
 			debug = true,
 			sources = {
-				-- setup lua formatter
-				-- null_ls.builtins.formatting.stylua,
-				-- -- setup eslint linter for javascript
-				-- require("none-ls.diagnostics.eslint_d"),
-				-- -- setup prettier to format languages that are not lua
-				-- null_ls.builtins.formatting.prettier,
-				--
-				-- -- KtLint for Kotlin files ONLY
-				-- null_ls.builtins.formatting.ktlint.with({
-				-- 	filetypes = { "kotlin" },
-				-- }),
-				--
-				-- -- diagnostics (linter)
-				-- null_ls.builtins.diagnostics.ktlint.with({ filetypes = { "kotlin" } }),
+				-- setup prettier to format languages that are not lua
+				null_ls.builtins.formatting.prettier,
+
+				-- KtLint for Kotlin files ONLY
+				null_ls.builtins.formatting.ktlint.with({
+					filetypes = { "kotlin" },
+				}),
+
+				-- diagnostics (linter)
+				null_ls.builtins.diagnostics.ktlint.with({ filetypes = { "kotlin" } }),
 
 				maven_diagnostics,
 
-				-- null_ls.builtins.diagnostics.checkstyle.with({
-				-- 	filetypes = { "java" }, -- ✅ Restrict to Java only
-				-- 	command = "java",
-				-- 	args = {
-				-- 		"-jar",
-				-- 		checkstyle_jar,
-				-- 		"-c",
-				-- 		google_checks,
-				-- 		"$FILENAME",
-				-- 	},
-				-- 	format = "line",
-				-- 	to_temp_file = true,
-				-- 	from_stderr = false,
-				-- 	on_output = function(params)
-				-- 		local diagnostics = {}
-				-- 		for line in vim.gsplit(params.output, "\n") do
-				-- 			local severity_text, filename, line_num, col_num, message =
-				-- 				string.match(line, "^%[(%u+)%]%s+(.+):(%d+):(%d+):%s+(.+)%s+%[.-%]$")
-				-- 			if severity_text and filename and line_num and col_num and message then
-				-- 				local severity = 3 -- default INFO
-				-- 				if severity_text == "ERROR" then
-				-- 					severity = 1
-				-- 				elseif severity_text == "WARN" or severity_text == "WARNING" then
-				-- 					severity = 2
-				-- 				elseif severity_text == "INFO" then
-				-- 					severity = 3
-				-- 				elseif severity_text == "HINT" then
-				-- 					severity = 4
-				-- 				end
-				--
-				-- 				table.insert(diagnostics, {
-				-- 					row = tonumber(line_num),
-				-- 					col = tonumber(col_num),
-				-- 					end_col = tonumber(col_num) + 1,
-				-- 					message = message,
-				-- 					severity = severity,
-				-- 					source = "checkstyle",
-				-- 					bufnr = params.bufnr,
-				-- 				})
-				-- 			end
-				-- 		end
-				-- 		return diagnostics
-				-- 	end,
-				-- }),
+				null_ls.builtins.diagnostics.checkstyle.with(checkstyle_diagnostic),
 			},
+			on_attach = function(client, bufnr)
+				vim.notify("null-ls attached to buffer " .. bufnr, vim.log.levels.INFO)
+			end,
 		})
 
 		-- set up a vim motion for <Space> + c + f to automatically format our code based on which langauge server is active
