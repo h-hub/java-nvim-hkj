@@ -39,6 +39,7 @@ require("config.autocmds")
 
 require("config.maven.mvn-config")
 require("config.tags.tags")
+require("config.shell-popup.shell-popup")
 
 -- Setup lazy, this should always be last
 -- Tell lazy that all plugin specs are found in the plugins directory

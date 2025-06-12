@@ -10,6 +10,7 @@ return {
 		local config_dir = fn.stdpath("config") .. "/lua/config/checkstyle-config"
 		local checkstyle_jar = config_dir .. "/checkstyle.jar"
 		local google_checks = config_dir .. "/google_checks.xml"
+		local google_format_jar = config_dir .. "/google_format.jar"
 
 		-- Create folder if missing
 		fn.mkdir(config_dir, "p")
@@ -27,24 +28,34 @@ return {
 				"https://raw.githubusercontent.com/checkstyle/checkstyle/master/src/main/resources/google_checks.xml"
 			fn.system({ "curl", "-L", "-o", google_checks, xml_url })
 		end
+
+		if fn.filereadable(google_format_jar) == 0 then
+			local jar_url =
+				"https://github.com/google/google-java-format/releases/download/v1.27.0/google-java-format-1.27.0-all-deps.jar"
+			fn.system({ "curl", "-L", "-o", google_format_jar, jar_url })
+		end
+
 		-- get access to the none-ls functions
 		local null_ls = require("null-ls")
 
 		local h = require("null-ls.helpers")
 
+		local json = vim.fn.json_decode(vim.fn.readfile(vim.fn.expand(".nvim/maven.json")))
+
+		local maven_cmd = json.MAVEN_CMD ~= "" and json.MAVEN_CMD or "mvn"
+		local java_home = json.JAVA_HOME ~= "" and json.JAVA_HOME or os.getenv("JAVA_HOME")
+
 		local maven_diagnostics = {
 			method = null_ls.methods.DIAGNOSTICS,
 			filetypes = { "java" },
 			generator = h.generator_factory({
-				command = vim.fn.expand("~/.sdkman/candidates/maven/current/bin/mvn"),
+				command = maven_cmd,
 				args = { "compile", "-T", "1C" },
 				cwd = function()
-					return vim.fn.expand("~/codes/java/property-crm")
+					return vim.fn.getcwd()
 				end,
 				env = {
-					PATH = os.getenv("PATH"),
-					JAVA_HOME = os.getenv("JAVA_HOME"),
-					M2_HOME = os.getenv("M2_HOME"),
+					JAVA_HOME = java_home,
 				},
 				format = "line",
 				from_stderr = false,
@@ -82,13 +93,15 @@ return {
 		local checkstyle_diagnostic = {
 			filetypes = { "java" },
 			command = "java",
-			args = {
-				"-jar",
-				checkstyle_jar,
-				"-c",
-				google_checks,
-				"$filename",
-			},
+			args = function(params)
+				return {
+					"-jar",
+					checkstyle_jar, -- Ensure this variable points to the Checkstyle JAR path
+					"-c",
+					google_checks, -- Ensure this variable points to the Google Checks XML file
+					params.bufname, -- Use params.bufname to get the file path
+				}
+			end,
 			format = "line",
 			to_temp_file = false,
 			from_stderr = false,
@@ -110,6 +123,7 @@ return {
 						end
 
 						table.insert(diagnostics, {
+							filename = filename,
 							row = tonumber(line_num),
 							col = tonumber(col_num),
 							end_col = tonumber(col_num) + 1,
@@ -145,13 +159,20 @@ return {
 				maven_diagnostics,
 
 				null_ls.builtins.diagnostics.checkstyle.with(checkstyle_diagnostic),
+				null_ls.builtins.formatting.google_java_format.with({
+					command = "java",
+					args = {
+						"-jar",
+						google_format_jar,
+						"$FILENAME",
+					},
+				}),
 			},
-			on_attach = function(client, bufnr)
+			on_attach = function(bufnr)
 				vim.notify("null-ls attached to buffer " .. bufnr, vim.log.levels.INFO)
 			end,
 		})
 
-		-- set up a vim motion for <Space> + c + f to automatically format our code based on which langauge server is active
-		vim.keymap.set("n", "<leader>cf", vim.lsp.buf.format, { desc = "[C]ode [F]ormat" })
+		vim.keymap.set("n", "<leader>cf", vim.lsp.buf.format, { desc = "Format file" })
 	end,
 }

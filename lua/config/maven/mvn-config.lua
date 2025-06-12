@@ -88,11 +88,6 @@ end
 
 -- Select and run Maven command
 local function run_maven_command()
-	if not package.loaded["toggleterm"] then
-		require("lazy").load({ plugins = { "toggleterm.nvim" } })
-	end
-
-	local Terminal = require("toggleterm.terminal").Terminal
 	local maven_env = ensure_maven_env()
 
 	local command_list = {
@@ -159,17 +154,15 @@ local function run_maven_command()
 		if mvn_cmd == "mvn" and settings_xml == "" and java_home == "" then
 			shell_script = string.format(
 				[[
-zsh -c '
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
-echo "▶ java -version:";
-java -version;
-echo "";
-echo "▶ mvn -version:";
-mvn -version;
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
-echo "▶ Running: %s";
-%s;
-exec zsh'
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "▶ java -version:"
+java -version
+echo ""
+echo "▶ mvn -version:"
+mvn -version
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "▶ Running: %s"
+%s
 ]],
 				selected.value,
 				selected.value
@@ -177,23 +170,21 @@ exec zsh'
 		else
 			shell_script = string.format(
 				[[
-zsh -c '
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
-echo "▶ JAVA_HOME = %s";
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "▶ JAVA_HOME = %s"
 %s
-echo "";
-echo "▶ java -version:";
-%s -version;
-echo "";
-echo "▶ mvn -version:";
-%s -version;
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
-echo "▶ Running Maven Command: %s";
-%s;
-exec zsh'
+echo ""
+echo "▶ java -version:"
+%s -version
+echo ""
+echo "▶ mvn -version:"
+%s -version
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "▶ Running Maven Command: %s"
+%s
 ]],
 				java_home,
-				use_java_home and ('export JAVA_HOME="' .. java_home .. '"; export PATH="$JAVA_HOME/bin:$PATH";') or "",
+				use_java_home and ('export JAVA_HOME="' .. java_home .. '" export PATH="$JAVA_HOME/bin:$PATH";') or "",
 				java_cmd,
 				mvn_cmd,
 				cmd,
@@ -201,18 +192,19 @@ exec zsh'
 			)
 		end
 
-		local term = Terminal:new({
-			cmd = shell_script,
-			direction = "float",
-			close_on_exit = false,
-			hidden = true,
-			start_in_insert = true,
-			float_opts = {
-				border = "double",
-			},
-		})
+		-- Split script into lines and clean them
+		local lines = {}
+		for line in shell_script:gmatch("[^\r\n]+") do
+			line = line:gsub("^%s+", ""):gsub("%s+$", ""):gsub("%s*$", "")
+			if line ~= "" then
+				table.insert(lines, line)
+			end
+		end
 
-		term:toggle()
+		-- Combine lines into a single command with && to ensure sequential execution
+		local combined_command = table.concat(lines, " && ")
+
+		vim.api.nvim_command("ShellPopup " .. combined_command)
 	end)
 end
 
