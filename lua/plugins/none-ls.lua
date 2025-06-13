@@ -123,14 +123,14 @@ return {
 						end
 
 						table.insert(diagnostics, {
-							filename = filename,
+							-- filename = filename,
 							row = tonumber(line_num),
 							col = tonumber(col_num),
 							end_col = tonumber(col_num) + 1,
 							message = message,
 							severity = severity,
 							source = "checkstyle",
-							bufnr = params.bufnr,
+							-- bufnr = params.bufnr,
 						})
 					end
 				end
@@ -169,7 +169,7 @@ return {
 				}),
 			},
 			on_attach = function(bufnr)
-				vim.notify("null-ls attached to buffer " .. bufnr, vim.log.levels.INFO)
+				vim.notify("null-ls attached to buffer ", vim.log.levels.INFO)
 			end,
 		})
 
