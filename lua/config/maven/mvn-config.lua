@@ -145,12 +145,9 @@ local function run_maven_command()
 			cmd = cmd .. " -s " .. vim.fn.shellescape(settings_xml)
 		end
 
-		local use_java_home = java_home ~= ""
-		local java_cmd = use_java_home and (java_home .. "/bin/java") or "java"
-
 		local shell_script = ""
 
-		if mvn_cmd == "mvn" and settings_xml == "" and java_home == "" then
+		if java_home == "" then
 			shell_script = string.format(
 				[[
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -170,9 +167,6 @@ local function run_maven_command()
 			shell_script = string.format(
 				[[
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "▶ JAVA_HOME = %s"
-        %s
-        echo ""
         echo "▶ java -version:"
         %s -version
         echo ""
@@ -182,12 +176,10 @@ local function run_maven_command()
         echo "▶ Running Maven Command: %s"
         %s
         ]],
-				java_home,
-				use_java_home and ('export JAVA_HOME="' .. java_home .. '" export PATH="$JAVA_HOME/bin:$PATH";') or "",
-				java_cmd,
-				mvn_cmd .. "--batch-mode -Dstyle.color=never",
+				java_home .. "/bin/java",
+				"JAVA_HOME=" .. vim.trim(java_home) .. " " .. mvn_cmd,
 				cmd,
-				cmd
+				"JAVA_HOME=" .. vim.trim(java_home) .. " " .. cmd .. " --batch-mode -Dstyle.color=never"
 			)
 		end
 
@@ -210,15 +202,15 @@ end
 -- Prompt to set Maven config
 local function prompt_maven_config()
 	local default_env = {
-		MAVEN_CMD = "mvn",
-		MAVEN_SETTINGS = "~/.m2/settings.xml",
+		MAVEN_CMD = "",
+		MAVEN_SETTINGS = "",
 		JAVA_HOME = "",
 	}
 
 	local current_env = load_maven_env() or default_env
 
 	vim.ui.input({
-		prompt = "Enter Maven binary path:",
+		prompt = "Enter a valid Maven binary path:",
 		default = current_env.MAVEN_CMD,
 	}, function(mvn_path)
 		if not mvn_path then
@@ -226,7 +218,7 @@ local function prompt_maven_config()
 		end
 
 		vim.ui.input({
-			prompt = "Enter settings.xml path:",
+			prompt = "Enter a valid settings.xml path:",
 			default = current_env.MAVEN_SETTINGS,
 		}, function(settings_path)
 			if not settings_path then
@@ -234,13 +226,13 @@ local function prompt_maven_config()
 			end
 
 			vim.ui.input({
-				prompt = "Enter JAVA_HOME path:",
+				prompt = "Enter a valid JAVA_HOME path:",
 				default = current_env.JAVA_HOME,
 			}, function(java_home)
 				if not java_home then
 					java_home = ""
 				end
-				get_maven_env(mvn_path, settings_path, java_home)
+				get_maven_env(vim.trim(mvn_path), vim.trim(settings_path), vim.trim(java_home))
 				vim.notify("✅ Maven + Java config saved in .nvim/maven.json")
 			end)
 		end)
