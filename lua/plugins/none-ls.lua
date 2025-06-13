@@ -50,7 +50,7 @@ return {
 			filetypes = { "java" },
 			generator = h.generator_factory({
 				command = maven_cmd,
-				args = { "compile", "-T", "1C" },
+				args = { "compile", "-T", "1C", "--batch-mode", "-Dstyle.color=never" },
 				cwd = function()
 					return vim.fn.getcwd()
 				end,
@@ -138,12 +138,9 @@ return {
 			end,
 		}
 
-		vim.cmd("let g:null_ls_debug = v:true")
-		-- require("null-ls").setup({ debug = true })
-
 		-- run the setup function for none-ls to setup our different formatters
 		null_ls.setup({
-			debug = true,
+			debug = vim.g.null_ls_debug,
 			sources = {
 				-- setup prettier to format languages that are not lua
 				null_ls.builtins.formatting.prettier,
@@ -173,6 +170,6 @@ return {
 			end,
 		})
 
-		vim.keymap.set("n", "<leader>cf", vim.lsp.buf.format, { desc = "Format file" })
+		vim.keymap.set("n", "<leader>cf", vim.lsp.buf.format, { desc = "[C]ode [F]ormat" })
 	end,
 }

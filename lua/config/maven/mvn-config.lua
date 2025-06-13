@@ -186,7 +186,7 @@ echo "▶ Running Maven Command: %s"
 				java_home,
 				use_java_home and ('export JAVA_HOME="' .. java_home .. '" export PATH="$JAVA_HOME/bin:$PATH";') or "",
 				java_cmd,
-				mvn_cmd,
+				mvn_cmd .. "--batch-mode -Dstyle.color=never",
 				cmd,
 				cmd
 			)

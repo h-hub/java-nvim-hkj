@@ -48,3 +48,6 @@ vim.diagnostic.config({
 	update_in_insert = false,
 	severity_sort = true,
 })
+
+-- set to true turn on null_ls debug
+vim.g.null_ls_debug = false
