@@ -159,7 +159,7 @@ echo "▶ java -version:"
 java -version
 echo ""
 echo "▶ mvn -version:"
-mvn -version
+mvn -version --batch-mode -Dstyle.color=never
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "▶ Running: %s"
 %s
