@@ -1,4 +1,3 @@
-local uv = vim.loop
 local json = vim.fn.json_encode
 local parse = vim.fn.json_decode
 
@@ -54,8 +53,8 @@ end
 
 -- Set Maven environment from input or default
 local function get_maven_env(custom_mvn, custom_settings, custom_java_home)
-	local mvn_cmd = custom_mvn or "mvn"
-	local settings_xml = custom_settings or "~/.m2/settings.xml"
+	local mvn_cmd = custom_mvn or ""
+	local settings_xml = custom_settings or ""
 	local java_home = custom_java_home or ""
 
 	local env = {
@@ -154,35 +153,35 @@ local function run_maven_command()
 		if mvn_cmd == "mvn" and settings_xml == "" and java_home == "" then
 			shell_script = string.format(
 				[[
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "▶ java -version:"
-java -version
-echo ""
-echo "▶ mvn -version:"
-mvn -version --batch-mode -Dstyle.color=never
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "▶ Running: %s"
-%s
-]],
-				selected.value,
-				selected.value
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "▶ java -version:"
+        java -version
+        echo ""
+        echo "▶ mvn -version:"
+        mvn -version 
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "▶ Running: %s"
+        %s
+        ]],
+				selected.value .. "--batch-mode -Dstyle.color=never",
+				selected.value .. "--batch-mode -Dstyle.color=never"
 			)
 		else
 			shell_script = string.format(
 				[[
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "▶ JAVA_HOME = %s"
-%s
-echo ""
-echo "▶ java -version:"
-%s -version
-echo ""
-echo "▶ mvn -version:"
-%s -version
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "▶ Running Maven Command: %s"
-%s
-]],
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "▶ JAVA_HOME = %s"
+        %s
+        echo ""
+        echo "▶ java -version:"
+        %s -version
+        echo ""
+        echo "▶ mvn -version:"
+        %s -version
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "▶ Running Maven Command: %s"
+        %s
+        ]],
 				java_home,
 				use_java_home and ('export JAVA_HOME="' .. java_home .. '" export PATH="$JAVA_HOME/bin:$PATH";') or "",
 				java_cmd,
