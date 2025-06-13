@@ -160,8 +160,8 @@ local function run_maven_command()
         echo "▶ Running: %s"
         %s
         ]],
-				selected.value .. "--batch-mode -Dstyle.color=never",
-				selected.value .. "--batch-mode -Dstyle.color=never"
+				selected.value .. " --batch-mode -Dstyle.color=never",
+				selected.value .. " --batch-mode -Dstyle.color=never"
 			)
 		else
 			shell_script = string.format(
